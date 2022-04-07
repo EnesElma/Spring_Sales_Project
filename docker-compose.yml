@@ -1,0 +1,67 @@
+version: "3.7"
+
+networks:
+  my_network:
+    driver: bridge
+    name: my_network
+
+volumes:
+  ngss:
+
+services:
+  pg_database:
+    image: postgres:14.0-alpine
+    container_name: ngss_database
+    ports:
+      - 15432:5432
+    volumes:
+      - ngss:/var/lib/postgresql/data
+    networks:
+      - my_network
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: test
+      POSTGRES_DB: ngss_db
+
+  user:
+    build: ./user
+    image: user
+    container_name: user
+    depends_on:
+      - pg_database
+    ports:
+      - 8080:8080
+    networks:
+      - my_network
+    environment:
+      NGSS_DB: pg_database:5432
+
+  product:
+    build: ./product
+    image: product
+    container_name: product
+    depends_on:
+      - pg_database
+    ports:
+      - 8081:8081
+    networks:
+      - my_network
+    environment:
+      NGSS_DB: pg_database:5432
+
+  order:
+    build: ./order
+    image: order
+    container_name: order
+    depends_on:
+      - pg_database
+      - product
+      - user
+    ports:
+      - 8082:8082
+    networks:
+      - my_network
+    environment:
+      NGSS_DB: pg_database:5432
+      USER_S: user:8080
+      PRODUCT_S: product:8081
